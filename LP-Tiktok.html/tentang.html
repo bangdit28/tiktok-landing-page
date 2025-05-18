@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Tentang & Penawaran - Perbaikan Final</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --tiktok-black: #0F0F0F;
+            --tiktok-white: #FFFFFF;
+            --tiktok-gray: #86878B;
+            --tiktok-light-gray: #262626;
+            --tiktok-red: #FE2C55;
+            --facebook-blue: #1877F2;
+            --whatsapp-green: #25D366;
+            --telegram-blue: #0088CC;
+            --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            font-family: var(--font-main);
+            background-color: var(--tiktok-black);
+            color: var(--tiktok-white);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Menggunakan nama kelas yang konsisten untuk shell aplikasi */
+        .app-shell {
+            width: 100%; height: 100%; max-width: 450px; max-height: 950px;
+            background-color: var(--tiktok-black);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Mencegah konten keluar dari shell */
+        }
+
+        /* Header generik untuk halaman ini */
+        .page-header {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            padding-top: calc(env(safe-area-inset-top, 0px) + 10px); /* Untuk notch iPhone */
+            border-bottom: 1px solid var(--tiktok-light-gray);
+            /* position: sticky; Dihapus karena .app-shell sudah flex column */
+            /* top: 0; */
+            background-color: var(--tiktok-black);
+            z-index: 10;
+            flex-shrink: 0; /* Mencegah header menyusut */
+        }
+        .page-header .back-btn {
+            font-size: 20px;
+            color: var(--tiktok-white);
+            cursor: pointer;
+            padding: 5px;
+            margin-right: 15px;
+        }
+        .page-header .page-title {
+            font-size: 17px;
+            font-weight: 600;
+            flex-grow: 1;
+            text-align: center;
+            /* Penyesuaian agar judul benar-benar di tengah jika ada tombol lain */
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 100px); /* Beri ruang untuk tombol kiri & kanan */
+            pointer-events: none; /* Agar tidak mengganggu klik tombol di bawahnya */
+        }
+         .page-header .placeholder-btn { /* Jika ada tombol di kanan header */
+            width: 30px; /* Sesuaikan dengan lebar back-btn */
+        }
+
+
+        .page-content {
+            flex-grow: 1; /* Mengambil sisa ruang */
+            overflow-y: auto; /* Hanya scroll vertikal jika konten melebihi */
+            padding: 25px 20px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Pusatkan item secara horizontal */
+            /* justify-content: center; Dihapus agar konten mulai dari atas */
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.2) transparent;
+        }
+        .page-content::-webkit-scrollbar { width: 6px; }
+        .page-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+
+        .intro-section {
+            margin-bottom: 30px;
+            width: 100%; /* Ambil lebar penuh kontainer padding */
+        }
+        .intro-section .app-logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px auto;
+        }
+        .intro-section .app-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .intro-section h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .intro-section p {
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--tiktok-gray);
+            max-width: 320px; /* Batasi lebar teks */
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .download-section {
+            margin-bottom: 30px;
+            width: 100%;
+            display: flex; /* Untuk centering tombol jika perlu */
+            flex-direction: column;
+            align-items: center;
+        }
+        .download-button {
+            display: inline-flex; align-items: center; justify-content: center;
+            background-color: var(--tiktok-red); color: var(--tiktok-white);
+            padding: 12px 30px; border-radius: 25px; font-size: 16px;
+            font-weight: 600; text-decoration: none; border: none;
+            cursor: pointer; transition: background-color 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            min-width: 200px; /* Lebar minimal tombol */
+        }
+        .download-button i { margin-right: 8px; font-size: 18px; }
+        .download-button:hover { background-color: #E01E48; }
+        .download-button:active { transform: scale(0.98); }
+
+        .social-join-section {
+            width: 100%;
+            max-width: 320px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--tiktok-light-gray);
+        }
+        .social-join-section h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--tiktok-white);
+        }
+        .social-links {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .social-link-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--tiktok-white);
+            transition: opacity 0.2s ease;
+        }
+        .social-link-button i {
+            font-size: 20px;
+            margin-right: 10px;
+        }
+        .social-link-button:hover {
+            opacity: 0.85;
+        }
+        .social-link-button.facebook { background-color: var(--facebook-blue); }
+        .social-link-button.whatsapp { background-color: var(--whatsapp-green); }
+        .social-link-button.telegram { background-color: var(--telegram-blue); }
+
+        /* Navigasi Bawah */
+        .tiktok-bottom-nav {
+            flex-shrink: 0; /* Mencegah nav menyusut */
+            display: flex; justify-content: space-around; align-items: center;
+            background-color: var(--tiktok-black); padding: 5px 0;
+            padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 5px);
+            border-top: 1px solid var(--tiktok-light-gray);
+            z-index: 100; height: 50px;
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--tiktok-gray); font-size: 10px; font-weight: 500; cursor: pointer; flex: 1; text-align: center; transition: color 0.2s ease; height: 100%; }
+        .nav-item a { text-decoration: none; color: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
+        .nav-item:hover a, .nav-item.active a, .nav-item:hover, .nav-item.active { color: var(--tiktok-white); }
+        .nav-item i { font-size: 22px; margin-bottom: 2px; }
+        .nav-item.create-button { width: 48px; height: 30px; background-color: var(--tiktok-white); border-radius: 8px; display: flex; justify-content: center; align-items: center; margin: 0 5px; position: relative; }
+        .nav-item.create-button i { color: var(--tiktok-black); font-size: 20px; margin: 0; }
+        .nav-item.create-button::before { content: ''; position: absolute; left: -3.5px; top: 50%; transform: translateY(-50%); width: 6px; height: 70%; background-color: #25F4EE; border-radius: 3px; }
+        .nav-item.create-button::after { content: ''; position: absolute; right: -3.5px; top: 50%; transform: translateY(-50%); width: 6px; height: 70%; background-color: #EE1D52; border-radius: 3px; }
+
+    </style>
+</head>
+<body>
+    <div class="app-shell"> <!-- Menggunakan kelas app-shell yang konsisten -->
+        <header class="page-header">
+            <a href="index.html" style="color: inherit; text-decoration: none; z-index:1;"> <!-- Pastikan tombol kembali bisa diklik -->
+                <i class="fas fa-arrow-left back-btn"></i>
+            </a>
+            <span class="page-title">Tentang Aplikasi</span>
+             <div class="placeholder-btn" style="width:30px;"></div> <!-- Placeholder agar judul terpusat -->
+        </header>
+
+        <div class="page-content">
+            <div class="intro-section">
+                <div class="app-logo">
+                    <img src="https://i.imgur.com/zYPwr0g.png" alt="Logo Aplikasi">
+                </div>
+                <h1>Selamat Datang!</h1>
+                <p>
+                    Ini adalah platform keren untuk menemukan konten video menarik.
+                    Jelajahi, berinteraksi, dan bagikan momen Anda!
+                </p>
+                <p style="margin-top: 15px; font-size: 13px;">
+                    Dibuat oleh Kawasan Dewasa
+                </p>
+            </div>
+
+            <div class="download-section">
+                <button class="download-button" id="downloadVideoButton">
+                    <i class="fas fa-rocket"></i>
+                    Lihat Penawaran Spesial!
+                </button>
+                <p style="font-size: 12px; color: var(--tiktok-gray); margin-top: 10px;">
+                    (Anda akan diarahkan ke halaman partner kami)
+                </p>
+            </div>
+
+            <div class="social-join-section">
+                <h2>Gabung Komunitas Kami!</h2>
+                <div class="social-links">
+                    <a href="URL_FACEBOOK_ANDA" target="_blank" class="social-link-button facebook">
+                        <i class="fab fa-facebook-f"></i> Gabung Grup Facebook
+                    </a>
+                    <a href="URL_WHATSAPP_ANDA" target="_blank" class="social-link-button whatsapp">
+                        <i class="fab fa-whatsapp"></i> Kontak via WhatsApp
+                    </a>
+                    <a href="URL_TELEGRAM_ANDA" target="_blank" class="social-link-button telegram">
+                        <i class="fab fa-telegram-plane"></i> Ikuti Channel Telegram
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <nav class="tiktok-bottom-nav">
+            <div class="nav-item"><a href="index.html"><i class="fas fa-home"></i><span>Beranda</span></a></div>
+            <div class="nav-item"><a href="galeri.html"><i class="far fa-images"></i><span>Galeri</span></a></div>
+            <div class="nav-item create-button"><i class="fas fa-plus"></i></div>
+            <div class="nav-item active"><a href="#"><i class="fas fa-info-circle"></i><span>Tentang</span></a></div>
+            <div class="nav-item"><a href="profil.html"><i class="far fa-user"></i><span>Profil</span></a></div>
+        </nav>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const downloadButton = document.getElementById('downloadVideoButton');
+            if (downloadButton) {
+                downloadButton.addEventListener('click', function() {
+                    const directLink = 'URL_DIRECT_LINK_ADSTERRA_ANDA'; // GANTI INI!
+                    if (directLink && directLink !== 'URL_DIRECT_LINK_ADSTERRA_ANDA' && directLink.trim() !== '') {
+                        window.open(directLink, '_blank');
+                    } else {
+                        alert('URL direct link belum diatur dengan benar!');
+                        console.warn('Direct link Adsterra belum diatur.');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>TikTok Feed - Perbaikan Utama</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --tiktok-black: #0F0F0F;
+            --tiktok-white: #FFFFFF;
+            --tiktok-gray: #86878B;
+            --tiktok-light-gray: #262626;
+            --tiktok-red: #FE2C55;
+            --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            --font-notification: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            font-family: var(--font-main);
+            background-color: var(--tiktok-black); color: var(--tiktok-white);
+            overflow: hidden; display: flex; justify-content: center; align-items: center;
+        }
+
+        .tiktok-app-shell {
+            width: 100%; height: 100%; max-width: 450px; max-height: 950px;
+            background-color: var(--tiktok-black); position: relative; overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+
+        /* Notifikasi Berjalan */
+        .running-notification-bar {
+            padding: 8px 0;
+            text-align: left;
+            position: absolute;
+            top: 10px;
+            left: 0;
+            right: 0;
+            z-index: 150;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .running-notification-bar .notification-text {
+            display: inline-block;
+            padding-left: 100%;
+            animation: marquee-notification 18s linear infinite;
+            color: var(--tiktok-red);
+            font-family: var(--font-notification);
+            font-size: 14px;
+            font-weight: 600;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+        }
+        @keyframes marquee-notification {
+            0%   { transform: translateX(0%); }
+            100% { transform: translateX(-250%); }
+        }
+
+        /* Video Feed */
+        .video-feed {
+            flex-grow: 1; /* Mengambil sisa ruang vertikal */
+            width: 100%;
+            position: relative;
+            scroll-snap-type: y mandatory;
+            overflow-y: auto; /* Scrollbar akan muncul jika konten melebihi */
+            /* Hapus padding-top sementara untuk debugging, bisa ditambahkan lagi jika notifikasi menutupi */
+        }
+        /* Hapus styling scrollbar kustom sementara untuk debugging */
+        /* .video-feed::-webkit-scrollbar { ... } */
+        /* .video-feed { scrollbar-width: none; } */
+
+
+        .video-container { width: 100%; height: 100%; position: relative; scroll-snap-align: start; display: flex; justify-content: center; align-items: center; background-color: #000; }
+        .video-container iframe { width: 100%; height: 100%; border: none; }
+        .video-player { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+        .video-overlay-ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; pointer-events: none; }
+
+        .video-info-wrapper { position: absolute; bottom: calc(60px + 15px); left: 15px; right: 85px; color: var(--tiktok-white); text-shadow: 1px 1px 3px rgba(0,0,0,0.6); pointer-events: all; z-index: 10; }
+        .video-info-wrapper .username { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+        .video-info-wrapper .caption-music-container { font-size: 14px; line-height: 1.4; }
+        .video-info-wrapper .caption-text-wrapper { max-height: 2.8em; overflow: hidden; position: relative; transition: max-height 0.3s ease-out; }
+        .video-info-wrapper .caption-text-wrapper.expanded { max-height: 100em; }
+        .video-info-wrapper .caption-text-wrapper .caption-text { display: inline; }
+        .video-info-wrapper .caption-text-wrapper .hashtag { font-weight: 600; }
+        .video-info-wrapper .toggle-caption-btn { font-weight: 600; cursor: pointer; display: inline-block; margin-left: 5px; color: rgba(255,255,255,0.8); visibility: hidden; /* Ditampilkan oleh JS jika perlu */ }
+        .video-info-wrapper .music-info { margin-top: 6px; display: flex; align-items: center; font-weight: 500; }
+        .video-info-wrapper .music-info .music-note-icon { margin-right: 6px; font-size: 15px; }
+        .video-info-wrapper .music-info .music-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+
+        .tiktok-sidebar {
+            position: absolute;
+            right: 10px;
+            bottom: 70px; /* Posisi sidebar yang diinginkan */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 50;
+            pointer-events: all;
+        }
+        .sidebar-icon { display: flex; flex-direction: column; align-items: center; margin-bottom: 18px; cursor: pointer; color: var(--tiktok-white); text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+        .sidebar-icon.profile { margin-bottom: 22px; cursor: default; }
+        .sidebar-icon .icon-wrapper.profile-pic-container { width: 48px; height: 48px; border-radius: 50%; background-color: var(--tiktok-light-gray); border: 1.5px solid var(--tiktok-white); overflow: hidden; position: relative; cursor: pointer; }
+        .sidebar-icon .profile-pic { width: 100%; height: 100%; object-fit: cover; }
+        .sidebar-icon .follow-button-overlay { position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); background-color: var(--tiktok-red); color: var(--tiktok-white); width: 22px; height: 22px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: bold; border: 1.5px solid var(--tiktok-white); cursor: pointer; transition: background-color 0.2s, transform 0.2s; }
+        .sidebar-icon .follow-button-overlay.followed { background-color: var(--tiktok-gray); font-size: 12px; }
+        .sidebar-icon i { font-size: 30px; }
+        .sidebar-icon.bookmark i { font-size: 28px; }
+        .sidebar-icon.share i { font-size: 28px; }
+        .sidebar-icon .liked i { color: var(--tiktok-red); }
+        .sidebar-icon span { font-size: 13px; font-weight: 600; margin-top: 4px; }
+        .sidebar-icon .music-disc-wrapper { margin-top: 5px; }
+        .sidebar-icon .music-disc { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(45deg, #282828, #1A1A1A); display: flex; justify-content: center; align-items: center; animation: spin 5s linear infinite; animation-play-state: paused; border: 3px solid #111; padding: 2px; }
+        .sidebar-icon .music-disc.playing { animation-play-state: running; }
+        .sidebar-icon .music-disc img { width: 70%; height: 70%; border-radius: 50%; object-fit: cover; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .tiktok-bottom-nav { position: sticky; /* Diubah ke sticky agar selalu terlihat di bawah .tiktok-app-shell */ bottom: 0; left: 0; right: 0; display: flex; justify-content: space-around; align-items: center; background-color: var(--tiktok-black); padding: 5px 0; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 5px); border-top: 1px solid var(--tiktok-light-gray); z-index: 100; height: 50px; flex-shrink: 0; /* Mencegah nav menyusut */ }
+        .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--tiktok-gray); font-size: 10px; font-weight: 500; cursor: pointer; flex: 1; text-align: center; transition: color 0.2s ease; height: 100%; }
+        .nav-item a { text-decoration: none; color: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
+        .nav-item:hover a, .nav-item.active a, .nav-item:hover, .nav-item.active { color: var(--tiktok-white); }
+        .nav-item i { font-size: 22px; margin-bottom: 2px; }
+        .nav-item.create-button { width: 48px; height: 30px; background-color: var(--tiktok-white); border-radius: 8px; display: flex; justify-content: center; align-items: center; margin: 0 5px; position: relative; cursor: pointer; }
+        .nav-item.create-button i { color: var(--tiktok-black); font-size: 20px; margin: 0; }
+        .nav-item.create-button::before { content: ''; position: absolute; left: -3.5px; top: 50%; transform: translateY(-50%); width: 6px; height: 70%; background-color: #25F4EE; border-radius: 3px; }
+        .nav-item.create-button::after { content: ''; position: absolute; right: -3.5px; top: 50%; transform: translateY(-50%); width: 6px; height: 70%; background-color: #EE1D52; border-radius: 3px; }
+        .nav-item .notification-badge { position: absolute; top: 4px; right: calc(50% - 20px); background-color: var(--tiktok-red); color: var(--tiktok-white); font-size: 10px; font-weight: bold; padding: 1px 5px; border-radius: 8px; line-height: 1; min-width: 10px; text-align: center; }
+
+        .play-pause-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 50px; color: rgba(255, 255, 255, 0.7); opacity: 0; transition: opacity 0.2s ease, transform 0.2s ease; pointer-events: none; z-index: 20; }
+        .video-container.show-play-pause .play-pause-overlay { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+        .video-container.show-play-pause .play-pause-overlay.pause { transform: translate(-50%, -50%) scale(1); }
+
+        .comments-modal { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%); width: 100%; max-width: 450px; height: 75%; background-color: #1C1C1E; border-top-left-radius: 12px; border-top-right-radius: 12px; z-index: 200; display: none; flex-direction: column; box-shadow: 0 -5px 15px rgba(0,0,0,0.3); transition: transform 0.3s ease-out; overflow: hidden; }
+        .comments-modal.open { display: flex; transform: translateX(-50%) translateY(0%); }
+        .comments-modal-header { padding: 12px 15px; text-align: center; font-weight: 600; font-size: 16px; border-bottom: 1px solid var(--tiktok-light-gray); position: relative; }
+        .comments-modal-header .close-comments-btn { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); font-size: 20px; color: var(--tiktok-gray); cursor: pointer; }
+        .comments-list { flex-grow: 1; overflow-y: auto; padding: 10px 15px; }
+        .comment-item { display: flex; margin-bottom: 15px; }
+        .comment-item .profile-pic-comment { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; margin-right: 10px; flex-shrink: 0; }
+        .comment-content { flex-grow: 1; }
+        .comment-content .username { font-size: 13px; color: var(--tiktok-gray); margin-bottom: 3px; }
+        .comment-content .username.creator-comment { font-weight: 600; }
+        .comment-content .comment-text { font-size: 14px; line-height: 1.4; margin-bottom: 5px; word-break: break-word; }
+        .comment-content .comment-actions { font-size: 12px; color: var(--tiktok-gray); }
+        .comment-content .comment-actions .time { margin-right: 10px; }
+        .comment-content .comment-actions .reply-btn { font-weight: 500; cursor: pointer; }
+        .comment-content .comment-actions .like-comment-btn { margin-left: 15px; cursor: pointer; }
+        .comment-content .comment-actions .like-comment-btn.liked i { color: var(--tiktok-red); }
+        .replies-container { margin-left: 46px; margin-top: 10px; padding-top: 10px; border-left: 2px solid var(--tiktok-light-gray); padding-left: 10px; }
+        .comment-input-area { display: flex; align-items: center; padding: 10px 15px; border-top: 1px solid var(--tiktok-light-gray); background-color: #1C1C1E; }
+        .comment-input-area .user-avatar-input { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-right: 10px; }
+        .comment-input-area input[type="text"] { flex-grow: 1; background-color: var(--tiktok-light-gray); border: none; border-radius: 18px; padding: 8px 15px; font-size: 14px; color: var(--tiktok-white); outline: none; }
+        .comment-input-area input[type="text"]::placeholder { color: var(--tiktok-gray); }
+        .comment-input-area .send-comment-btn { margin-left: 10px; font-size: 15px; font-weight: 600; color: var(--tiktok-red); cursor: pointer; background: none; border: none; padding: 5px; }
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 199; display: none; }
+        .modal-backdrop.open { display: block; }
+    </style>
+</head>
+<body>
+    <div class="tiktok-app-shell">
+        <div class="running-notification-bar">
+             <span class="notification-text">
+                <i class="fas fa-sync-alt" style="margin-right: 5px;"></i> VIDEO BARU SETIAP 3 JAM! JANGAN SAMPAI KETINGGALAN KONTEN EKSKLUSIF! <i class="fas fa-fire" style="margin-left: 5px; margin-right: 25px;"></i>
+                <i class="fas fa-sync-alt" style="margin-right: 5px;"></i> VIDEO BARU SETIAP 3 JAM! JANGAN SAMPAI KETINGGALAN KONTEN EKSKLUSIF! <i class="fas fa-fire" style="margin-left: 5px;"></i>
+            </span>
+        </div>
+
+        <div class="video-feed">
+            <div class="video-container" data-video-id="video_anda" data-creator-username="@VideoDariAnda" data-creator-avatar="https://i.imgur.com/4DD8UBE.jpeg">
+                <iframe src="https://do7go.com/e/v5oy4kcqr0om" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen scrolling="no"></iframe>
+                <div class="video-overlay-ui">
+                    <div class="video-info-wrapper"><div class="username">@VideoDariAnda</div><div class="caption-music-container"><div class="caption-text-wrapper"><span class="caption-text">Ngewe Pacarku Hijab.<span class="hashtag">#myvideo</span></span></div><span class="toggle-caption-btn" data-more-text="selengkapnya" data-less-text="sedikit">selengkapnya</span></div><div class="music-info"><i class="fas fa-music music-note-icon"></i><span class="music-title">Original Sound - Video Anda</span></div></div>
+                    <aside class="tiktok-sidebar"><div class="sidebar-icon profile"><div class="icon-wrapper profile-pic-container" data-followed="false"><img src="https://i.imgur.com/4DD8UBE.jpeg" alt="Profile" class="profile-pic"><div class="follow-button-overlay"><i class="fas fa-plus"></i></div></div></div><div class="sidebar-icon like-button"><i class="far fa-heart icon"></i> <span>-</span></div><div class="sidebar-icon comment-button"><i class="far fa-comment-dots icon"></i> <span>-</span></div><div class="sidebar-icon bookmark-button"><i class="far fa-bookmark icon"></i> <span>-</span></div><div class="sidebar-icon share-button"><i class="fas fa-share icon"></i> <span>-</span></div><div class="sidebar-icon music-disc-wrapper"><div class="music-disc"><img src="https://i.imgur.com/4DD8UBE.jpeg" alt="Music Cover"></div></div></aside>
+                </div>
+            </div>
+             <div class="video-container" data-video-id="video2" data-creator-username="@DanceQueen99" data-creator-avatar="https://i.pravatar.cc/100?img=5">
+                <video class="video-player" src="https://assets.mixkit.co/videos/preview/mixkit-woman-dancing-in-a-red-t-shirt-40236-large.mp4" poster="https://via.placeholder.com/400x800/000000/FFFFFF?text=Loading+Dance+Video..." loop playsinline muted></video>
+                <div class="play-pause-overlay"><i class="fas fa-play"></i></div>
+                <div class="video-overlay-ui">
+                    <div class="video-info-wrapper"><div class="username">@DanceQueen99</div><div class="caption-music-container"><div class="caption-text-wrapper"><span class="caption-text">Goyang lagi yuk! <span class="hashtag">#fyp</span></span></div><span class="toggle-caption-btn" data-more-text="banyak" data-less-text="sedikit">banyak</span></div><div class="music-info"><i class="fas fa-music music-note-icon"></i><span class="music-title">DanceQueen99 - Suara Asli</span></div></div>
+                    <aside class="tiktok-sidebar"><div class="sidebar-icon profile"><div class="icon-wrapper profile-pic-container" data-followed="false"><img src="https://i.pravatar.cc/100?img=5" alt="Profile" class="profile-pic"><div class="follow-button-overlay"><i class="fas fa-plus"></i></div></div></div><div class="sidebar-icon like-button"><i class="far fa-heart icon"></i> <span>25,2 rb</span></div><div class="sidebar-icon comment-button"><i class="far fa-comment-dots icon"></i> <span>501</span></div><div class="sidebar-icon bookmark-button"><i class="far fa-bookmark icon"></i> <span>1.205</span></div><div class="sidebar-icon share-button"><i class="fas fa-share icon"></i> <span>880</span></div><div class="sidebar-icon music-disc-wrapper"><div class="music-disc"><img src="https://i.pravatar.cc/100?img=5" alt="Music Cover"></div></div></aside>
+                </div>
+            </div>
+             <div class="video-container" data-video-id="video3" data-creator-username="@NatureExplorer" data-creator-avatar="https://i.pravatar.cc/100?img=25">
+                <video class="video-player" src="https://assets.mixkit.co/videos/preview/mixkit-forest-stream-in-the-sunlight-529-large.mp4" poster="https://via.placeholder.com/400x800/000000/FFFFFF?text=Loading+Nature+Video..." loop playsinline muted></video>
+                <div class="play-pause-overlay"><i class="fas fa-play"></i></div>
+                <div class="video-overlay-ui">
+                    <div class="video-info-wrapper"><div class="username">@NatureExplorer</div><div class="caption-music-container"><div class="caption-text-wrapper"><span class="caption-text">Alam yg indah. <span class="hashtag">#nature</span></span></div><span class="toggle-caption-btn" data-more-text="selengkapnya" data-less-text="sedikit">selengkapnya</span></div><div class="music-info"><i class="fas fa-music music-note-icon"></i><span class="music-title">Peaceful Woods</span></div></div>
+                    <aside class="tiktok-sidebar"><div class="sidebar-icon profile"><div class="icon-wrapper profile-pic-container" data-followed="true"><img src="https://i.pravatar.cc/100?img=25" alt="Profile" class="profile-pic"><div class="follow-button-overlay followed"><i class="fas fa-check"></i></div></div></div><div class="sidebar-icon like-button"><i class="fas fa-heart icon liked"></i> <span>105 rb</span></div><div class="sidebar-icon comment-button"><i class="far fa-comment-dots icon"></i> <span>1.2K</span></div><div class="sidebar-icon bookmark-button"><i class="far fa-bookmark icon"></i> <span>830</span></div><div class="sidebar-icon share-button"><i class="fas fa-share icon"></i> <span>450</span></div><div class="sidebar-icon music-disc-wrapper"><div class="music-disc"><img src="https://i.pravatar.cc/100?img=25" alt="Music Cover"></div></div></aside>
+                </div>
+            </div>
+        </div>
+
+        <nav class="tiktok-bottom-nav">
+            <div class="nav-item active"><a href="#"><i class="fas fa-home"></i><span>Beranda</span></a></div>
+            <div class="nav-item"><a href="galeri.html"><i class="far fa-images"></i><span>Galeri</span></a></div>
+            <div class="nav-item create-button"><i class="fas fa-plus"></i></div>
+            <div class="nav-item"><a href="tentang.html"><i class="fas fa-info-circle"></i><span>Tentang</span></a></div>
+            <div class="nav-item"><a href="profil.html"><i class="far fa-user"></i><span>Profil</span></a></div>
+        </nav>
+    </div>
+
+    <div class="modal-backdrop"></div>
+    <div class="comments-modal">
+        <div class="comments-modal-header"><span id="comments-count-header">0 Komentar</span><i class="fas fa-times close-comments-btn"></i></div>
+        <div class="comments-list" id="comments-list-container"></div>
+        <div class="comment-input-area">
+            <img src="https://i.pravatar.cc/150?img=1" alt="My Avatar" class="user-avatar-input" id="my-comment-avatar-input">
+            <input type="text" id="comment-input-field" placeholder="Tambahkan komentar...">
+            <button class="send-comment-btn" id="send-comment-btn">Kirim</button>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const videoContainers = document.querySelectorAll('.video-container');
+        let currentlyPlayingVideoElement = null;
+        let currentVideoIdForComments = null;
+        let currentCreatorUsername = '';
+        let currentCreatorAvatar = '';
+
+        const myUserData = {
+            username: "@Kawasandewasa",
+            avatar: "https://i.imgur.com/zYPwr0g.png"
+        };
+        const myCommentAvatarInputElement = document.getElementById('my-comment-avatar-input');
+        if (myCommentAvatarInputElement) {
+            myCommentAvatarInputElement.src = myUserData.avatar;
+            myCommentAvatarInputElement.alt = myUserData.username;
+        }
+
+        const fakeCommentsData = {
+            video_anda: [ { id: 100, user: 'Rizalromawi', avatar: "https://i.imgur.com/nmi4P77.jpeg", text: 'Keren euy videonya!', time: '5m', likes: 12, replies: [] }, { id: 101, user: 'Adithikmah', avatar: "https://i.imgur.com/P4rHxaJ.jpeg", text: 'Salam olahraga tangan🗿.', time: '2m', likes: 8, replies: [ { id: 102, user: '@Adithikmah', avatar: "https://i.imgur.com/4DD8UBE.jpeg", text: 'Makasih dukungannya! 🙏', time: '1m', likes: 3, isCreator: true } ]} ],
+            video2: [ { id: 4, user: 'DancerMania', avatar: 'https://i.pravatar.cc/100?img=12', text: 'Asiiik, goyang terusss! 💃🕺', time: '1h', likes: 22, replies: [] }, { id: 5, user: 'TikTokFun', avatar: 'https://i.pravatar.cc/100?img=13', text: 'Energinya dapet banget!', time: '45m', likes: 15, replies: []}, { id: 6, user: 'UserLain', avatar: 'https://i.pravatar.cc/100?img=14', text: 'Lagunya apa ya?', time: '30m', likes: 7, replies: [ { id: 7, user: '@DanceQueen99', avatar: 'https://i.pravatar.cc/100?img=5', text: 'Ini Suara Asli dari aku kak! Cek ya!', time: '20m', likes: 10, isCreator: true } ]} ],
+            video3: [ { id: 200, user: 'AdventurerX', avatar: 'https://i.pravatar.cc/100?img=30', text: 'Indah sekali!', time: '10m', likes: 18, replies: [] }, { id: 201, user: 'TravelBug', avatar: 'https://i.pravatar.cc/100?img=31', text: 'Jadi pengen kesana 😍', time: '8m', likes: 12, replies: [ { id: 202, user: '@NatureExplorer', avatar: 'https://i.pravatar.cc/100?img=25', text: 'Ayo kak!', time: '5m', likes: 3, isCreator: true } ]}]
+        };
+        let nextCommentId = 204;
+
+        function formatTikTokNumber(numStr) { if (typeof numStr !== 'string' || numStr.trim() === '-' || isNaN(parseFloat(String(numStr).replace(/[^0-9.,]/g, '').replace(',', '.')))) { return 0; } let num = parseFloat(String(numStr).replace(/[^0-9.,]/gi, '').replace(',', '.')); if (String(numStr).toLowerCase().includes('rb') || String(numStr).toLowerCase().includes('k')) num *= 1000; if (String(numStr).toLowerCase().includes('jt')) num *= 1000000; return num; }
+        function displayTikTokNumber(num) { if (isNaN(num)) return "-"; if (num >= 1000000) return (num / 1000000).toFixed(1).replace('.0', '') + ' jt'; if (num >= 1000) return (num / 1000).toFixed(1).replace('.0', '').replace('.',',') + 'K'; return num.toString(); }
+
+        const observerOptions = { root: document.querySelector('.video-feed'), threshold: 0.6 };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const parentContainer = entry.target; const videoPlayer = parentContainer.querySelector('video.video-player');
+                if (entry.isIntersecting) {
+                    if (currentlyPlayingVideoElement && currentlyPlayingVideoElement !== videoPlayer) { if(currentlyPlayingVideoElement.pause) currentlyPlayingVideoElement.pause(); }
+                    if (videoPlayer) { if (videoPlayer.paused && !parentContainer.classList.contains('manually-paused')) { videoPlayer.play().catch(e => console.log("Autoplay error:", e.message || e)); }
+                    } else { currentlyPlayingVideoElement = null; const musicDiscForIframe = parentContainer.querySelector('.music-disc'); if (musicDiscForIframe) musicDiscForIframe.classList.remove('playing'); }
+                    currentVideoIdForComments = parentContainer.dataset.videoId; currentCreatorUsername = parentContainer.dataset.creatorUsername; currentCreatorAvatar = parentContainer.dataset.creatorAvatar;
+                } else { if (videoPlayer) { if (!videoPlayer.paused) { videoPlayer.pause(); } } }
+            });
+        }, observerOptions);
+
+        videoContainers.forEach(container => {
+            const videoPlayer = container.querySelector('video.video-player'); const playPauseOverlayIcon = container.querySelector('.play-pause-overlay i'); const likeButton = container.querySelector('.like-button'); const commentButton = container.querySelector('.comment-button'); const bookmarkButton = container.querySelector('.bookmark-button'); const profilePicContainer = container.querySelector('.profile-pic-container'); const followButtonOverlay = container.querySelector('.follow-button-overlay'); const musicDisc = container.querySelector('.music-disc');
+            observer.observe(container);
+            if (videoPlayer) {
+                videoPlayer.addEventListener('click', () => { if (videoPlayer.paused) { videoPlayer.play(); } else { videoPlayer.pause(); } container.classList.add('show-play-pause'); if(playPauseOverlayIcon) playPauseOverlayIcon.className = videoPlayer.paused ? 'fas fa-pause' : 'fas fa-play'; setTimeout(() => container.classList.remove('show-play-pause'), 300); });
+                videoPlayer.onplay = () => { container.classList.remove('paused', 'manually-paused'); container.classList.add('playing'); if (musicDisc) musicDisc.classList.add('playing'); currentlyPlayingVideoElement = videoPlayer; };
+                videoPlayer.onpause = () => { container.classList.add('paused'); container.classList.remove('playing'); if (musicDisc) musicDisc.classList.remove('playing'); };
+            }
+            if (likeButton) { const icon = likeButton.querySelector('i'); const countSpan = likeButton.querySelector('span'); likeButton.addEventListener('click', (e) => { e.stopPropagation(); if(countSpan.textContent.trim() === "-") return; let currentLikes = formatTikTokNumber(countSpan.textContent); if (icon.classList.contains('fas')) { icon.classList.remove('fas', 'liked'); icon.classList.add('far'); currentLikes -=1; } else { icon.classList.remove('far'); icon.classList.add('fas', 'liked'); currentLikes +=1; } countSpan.textContent = displayTikTokNumber(currentLikes); }); }
+            if (bookmarkButton) { const icon = bookmarkButton.querySelector('i'); const countSpan = bookmarkButton.querySelector('span'); bookmarkButton.addEventListener('click', (e) => { e.stopPropagation(); if(countSpan.textContent.trim() === "-") return; let currentSaves = formatTikTokNumber(countSpan.textContent); if (icon.classList.contains('fas')) { icon.classList.remove('fas'); icon.classList.add('far'); currentSaves -=1; } else { icon.classList.remove('far'); icon.classList.add('fas'); currentSaves +=1; } countSpan.textContent = displayTikTokNumber(currentSaves); }); }
+            if (commentButton) { commentButton.addEventListener('click', (e) => { e.stopPropagation(); const activeVideoContainer = e.target.closest('.video-container'); if (activeVideoContainer) { const videoId = activeVideoContainer.dataset.videoId; currentVideoIdForComments = videoId; currentCreatorUsername = activeVideoContainer.dataset.creatorUsername; currentCreatorAvatar = activeVideoContainer.dataset.creatorAvatar; openCommentsModal(videoId); } }); }
+            if (profilePicContainer && followButtonOverlay) { const followClickableElements = [profilePicContainer, followButtonOverlay]; followClickableElements.forEach(el => { el.addEventListener('click', (e) => { e.stopPropagation(); let isFollowed = profilePicContainer.dataset.followed === 'true'; if (isFollowed) { profilePicContainer.dataset.followed = 'false'; followButtonOverlay.innerHTML = '<i class="fas fa-plus"></i>'; followButtonOverlay.classList.remove('followed'); } else { profilePicContainer.dataset.followed = 'true'; followButtonOverlay.innerHTML = '<i class="fas fa-check"></i>'; followButtonOverlay.classList.add('followed'); } }); }); }
+            const captionWrapper = container.querySelector('.caption-text-wrapper'); const toggleCaptionButton = container.querySelector('.toggle-caption-btn');
+            if (captionWrapper && toggleCaptionButton) {
+                setTimeout(() => {
+                    if (captionWrapper.scrollHeight > captionWrapper.clientHeight + 2) { toggleCaptionButton.style.visibility = 'visible'; } else { toggleCaptionButton.style.visibility = 'hidden'; }
+                }, 100);
+                toggleCaptionButton.addEventListener('click', (e) => { e.stopPropagation(); captionWrapper.classList.toggle('expanded'); if (captionWrapper.classList.contains('expanded')) { toggleCaptionButton.textContent = toggleCaptionButton.dataset.lessText; } else { toggleCaptionButton.textContent = toggleCaptionButton.dataset.moreText; } });
+            }
+        });
+
+        const firstVideoContainer = document.querySelector('.video-container');
+        if (firstVideoContainer) { const firstVideoPlayer = firstVideoContainer.querySelector('video.video-player'); if (firstVideoPlayer) { const rect = firstVideoContainer.getBoundingClientRect(); if (rect.top >= 0 && rect.bottom <= (window.innerHeight || document.documentElement.clientHeight)) { if (firstVideoPlayer.paused) { firstVideoPlayer.play().catch(e => console.log("Initial play error:", e.message || e)); } } } else { currentVideoIdForComments = firstVideoContainer.dataset.videoId; currentCreatorUsername = firstVideoContainer.dataset.creatorUsername; currentCreatorAvatar = firstVideoContainer.dataset.creatorAvatar; const musicDiscForIframe = firstVideoContainer.querySelector('.music-disc'); if (musicDiscForIframe) musicDiscForIframe.classList.remove('playing'); } }
+
+        const commentsModal = document.querySelector('.comments-modal'); const commentsListContainer = document.getElementById('comments-list-container'); const closeCommentsBtn = document.querySelector('.close-comments-btn'); const commentInputField = document.getElementById('comment-input-field'); const sendCommentBtn = document.getElementById('send-comment-btn'); const commentsCountHeader = document.getElementById('comments-count-header'); const modalBackdrop = document.querySelector('.modal-backdrop');
+
+        function renderComment(comment, isReply = false) { const item = document.createElement('div'); item.classList.add('comment-item'); item.innerHTML = ` <img src="${comment.avatar}" alt="${comment.user}" class="profile-pic-comment"> <div class="comment-content"> <div class="username ${comment.isCreator ? 'creator-comment' : ''}">${comment.user} ${comment.isCreator ? '<i class="fas fa-check-circle" style="color:#FE2C55; font-size:10px; margin-left:4px;"></i>' : ''}</div> <div class="comment-text">${comment.text}</div> <div class="comment-actions"> <span class="time">${comment.time}</span> <span class="reply-btn" data-username="${comment.user}">Balas</span> <span class="like-comment-btn" data-comment-id="${comment.id}"> <i class="far fa-heart"></i> <span class="likes-count">${comment.likes || 0}</span> </span> </div> </div> `; if (comment.replies && comment.replies.length > 0) { const repliesContainer = document.createElement('div'); repliesContainer.classList.add('replies-container'); comment.replies.forEach(reply => { repliesContainer.appendChild(renderComment(reply, true)); }); item.querySelector('.comment-content').appendChild(repliesContainer); } item.querySelector('.reply-btn').addEventListener('click', function() { commentInputField.value = `@${this.dataset.username} `; commentInputField.focus(); }); item.querySelector('.like-comment-btn').addEventListener('click', function() { const heartIcon = this.querySelector('i'); const likesCountSpan = this.querySelector('.likes-count'); let likes = parseInt(likesCountSpan.textContent); if (heartIcon.classList.contains('far')) { heartIcon.classList.remove('far'); heartIcon.classList.add('fas', 'liked'); likes++; } else { heartIcon.classList.remove('fas', 'liked'); heartIcon.classList.add('far'); likes--; } likesCountSpan.textContent = likes; }); return item; }
+        function renderCommentsForVideo(videoId) { if(!commentsListContainer || !commentsCountHeader) return; commentsListContainer.innerHTML = ''; const comments = fakeCommentsData[videoId] || []; let totalComments = 0; comments.forEach(comment => { commentsListContainer.appendChild(renderComment(comment)); totalComments++; if (comment.replies) totalComments += comment.replies.length; }); commentsCountHeader.textContent = `${totalComments} Komentar`; const commentButtonForVideo = document.querySelector(`.video-container[data-video-id="${videoId}"] .comment-button span`); if (commentButtonForVideo && commentButtonForVideo.textContent.trim() !== "-") { commentButtonForVideo.textContent = displayTikTokNumber(totalComments); } }
+        function openCommentsModal(videoId) { renderCommentsForVideo(videoId); if(commentsModal && modalBackdrop){ commentsModal.classList.add('open'); modalBackdrop.classList.add('open');} if(currentlyPlayingVideoElement && !currentlyPlayingVideoElement.paused) { currentlyPlayingVideoElement.pause(); if (currentlyPlayingVideoElement.closest('.video-container')) { currentlyPlayingVideoElement.closest('.video-container').classList.add('system-paused'); } } }
+        function closeCommentsModal() { if(commentsModal && modalBackdrop){ commentsModal.classList.remove('open'); modalBackdrop.classList.remove('open');} if(commentInputField) commentInputField.value = ''; if(currentlyPlayingVideoElement && currentlyPlayingVideoElement.paused && currentlyPlayingVideoElement.closest('.video-container').classList.contains('system-paused')) { if (currentlyPlayingVideoElement.closest('.video-container')) { currentlyPlayingVideoElement.closest('.video-container').classList.remove('system-paused'); } currentlyPlayingVideoElement.play().catch(e => console.log("Error resuming play:", e)); } }
+        if(closeCommentsBtn) closeCommentsBtn.addEventListener('click', closeCommentsModal);
+        if(modalBackdrop) modalBackdrop.addEventListener('click', closeCommentsModal);
+        if(sendCommentBtn) { sendCommentBtn.addEventListener('click', () => { const commentText = commentInputField.value.trim(); if (commentText === '' || !currentVideoIdForComments) return; const newComment = { id: nextCommentId++, user: myUserData.username, avatar: myUserData.avatar, text: commentText, time: 'Baru saja', likes: 0, replies: [] }; if (!fakeCommentsData[currentVideoIdForComments]) { fakeCommentsData[currentVideoIdForComments] = []; } fakeCommentsData[currentVideoIdForComments].push(newComment); renderCommentsForVideo(currentVideoIdForComments); commentInputField.value = ''; if(commentsListContainer) commentsListContainer.scrollTop = commentsListContainer.scrollHeight; setTimeout(() => { const creatorReply = { id: nextCommentId++, user: currentCreatorUsername, avatar: currentCreatorAvatar, text: `Makasih ya udah komen, ${myUserData.username}! ❤️`, time: 'Baru saja', likes: 0, isCreator: true }; newComment.replies.push(creatorReply); renderCommentsForVideo(currentVideoIdForComments); if(commentsListContainer) commentsListContainer.scrollTop = commentsListContainer.scrollHeight; }, 2000); });}
+    });
+    </script>
+</body>
+</html>
